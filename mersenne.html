@@ -295,6 +295,155 @@
             color: #2980b9 !important;
         }
 
+        .user-stats-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .user-stats-table {
+            font-size: 14px;
+        }
+
+        .user-stats-table th {
+            font-size: 12px;
+            padding: 8px;
+        }
+
+        .user-stats-table td {
+            padding: 8px;
+        }
+
+        .user-name {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .stat-number {
+            font-family: 'Courier New', monospace;
+            font-weight: 500;
+        }
+
+        .section-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            font-size: 16px;
+            color: #7f8c8d;
+            transition: all 0.3s;
+        }
+
+        .tab-button.active {
+            color: #2c3e50;
+            border-bottom-color: #3498db;
+        }
+
+        .tab-button:hover {
+            color: #2c3e50;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .clickable-factor {
+            cursor: pointer;
+            color: #3498db;
+            text-decoration: underline;
+        }
+
+        .clickable-factor:hover {
+            color: #2980b9;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 600px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        .factor-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .factor-list li {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .factor-list li:last-child {
+            border-bottom: none;
+        }
+
+        .factor-exponent {
+            font-weight: 500;
+        }
+
+        .factor-value {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #666;
+            word-break: break-all;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
@@ -307,6 +456,20 @@
             th,
             td {
                 padding: 8px;
+            }
+
+            .user-stats-table {
+                font-size: 12px;
+            }
+
+            .user-stats-table th,
+            .user-stats-table td {
+                padding: 6px;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
             }
         }
     </style>
@@ -322,7 +485,7 @@
             </svg>
             Mersenne Prime Data Analyzer
         </h1>
-        <p class="subtitle">Parse and analyze GIMPS HTML exponent data</p>
+        <p class="subtitle">Parse and analyze GIMPS HTML exponent data with user activity tracking</p>
 
         <div class="input-section">
             <div class="info-box">
@@ -369,89 +532,141 @@
                     <div class="stat-value" id="statPRP">0</div>
                     <div class="stat-label">PRP/LL Complete</div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="statUniqueUsers">0</div>
+                    <div class="stat-label">Active Users</div>
+                </div>
             </div>
 
-            <div class="distribution-table">
-                <h3>TF Level Distribution</h3>
-                <table id="tfDistribution">
+            <div class="section-tabs">
+                <button class="tab-button active" onclick="showTab('exponents')">Exponent Details</button>
+                <button class="tab-button" onclick="showTab('users')">User Activity</button>
+                <button class="tab-button" onclick="showTab('assignments')">TF Assignments</button>
+            </div>
+
+            <div id="exponents-tab" class="tab-content active">
+                <div class="distribution-table">
+                    <h3>TF Level Distribution</h3>
+                    <table id="tfDistribution">
+                        <thead>
+                            <tr>
+                                <th>TF Level</th>
+                                <th>Count</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <h3 style="margin-top: 30px;">Detailed Results</h3>
+
+                <div class="filter-controls">
+                    <label>
+                        <input type="checkbox" id="filterUnfactored" onchange="applyFilters()">
+                        Show only unfactored
+                    </label>
+                    <label>
+                        <input type="checkbox" id="filterNoP1" onchange="applyFilters()">
+                        Show only missing P-1
+                    </label>
+                    <label>
+                        <input type="checkbox" id="filterNoPRP" onchange="applyFilters()">
+                        Show only missing PRP/LL
+                    </label>
+                    <select id="tfLevelFilter" onchange="applyFilters()">
+                        <option value="">All TF Levels</option>
+                    </select>
+                </div>
+
+                <table id="resultsTable">
                     <thead>
                         <tr>
-                            <th>TF Level</th>
-                            <th>Count</th>
-                            <th>Percentage</th>
+                            <th onclick="sortTable(0)">Exponent <span class="sort-indicator">▼</span></th>
+                            <th onclick="sortTable(1)">TF Level <span class="sort-indicator"></span></th>
+                            <th>TF Notes</th>
+                            <th onclick="sortTable(3)">P-1 Done <span class="sort-indicator"></span></th>
+                            <th onclick="sortTable(4)">PRP/LL Done <span class="sort-indicator"></span></th>
+                            <th onclick="sortTable(5)">Status <span class="sort-indicator"></span></th>
+                            <th>Factors</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
                 </table>
             </div>
 
-            <h3 style="margin-top: 30px;">Detailed Results</h3>
+            <div id="users-tab" class="tab-content">
+                <div class="user-stats-section">
+                    <h3>User Activity Statistics</h3>
+                    <p style="margin-bottom: 15px;">Activity breakdown for all users who have worked on exponents in this range.</p>
 
-            <div class="filter-controls">
-                <label>
-                    <input type="checkbox" id="filterUnfactored" onchange="applyFilters()">
-                    Show only unfactored
-                </label>
-                <label>
-                    <input type="checkbox" id="filterNoP1" onchange="applyFilters()">
-                    Show only missing P-1
-                </label>
-                <label>
-                    <input type="checkbox" id="filterNoPRP" onchange="applyFilters()">
-                    Show only missing PRP/LL
-                </label>
-                <select id="tfLevelFilter" onchange="applyFilters()">
-                    <option value="">All TF Levels</option>
-                </select>
+                    <table id="userStatsTable" class="user-stats-table">
+                        <thead>
+                            <tr>
+                                <th onclick="sortUserTable(0)">User <span class="sort-indicator"></span></th>
+                                <th onclick="sortUserTable(1)">TF Exponents <span class="sort-indicator"></span></th>
+                                <th onclick="sortUserTable(2)">TF Levels Done <span class="sort-indicator"></span></th>
+                                <th onclick="sortUserTable(3)">TF Factors Found <span class="sort-indicator"></span></th>
+                                <th onclick="sortUserTable(4)">P-1 Exponents <span class="sort-indicator"></span></th>
+                                <th onclick="sortUserTable(5)">P-1 Factors Found <span class="sort-indicator"></span></th>
+                                <th onclick="sortUserTable(6)">PRP/LL Tests <span class="sort-indicator"></span></th>
+                                <th onclick="sortUserTable(7)">Total Activity <span class="sort-indicator"></span></th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
 
-            <table id="resultsTable">
-                <thead>
-                    <tr>
-                        <th onclick="sortTable(0)">Exponent <span class="sort-indicator">▼</span></th>
-                        <th onclick="sortTable(1)">TF Level <span class="sort-indicator"></span></th>
-                        <th>TF Notes</th>
-                        <th onclick="sortTable(3)">P-1 Done <span class="sort-indicator"></span></th>
-                        <th onclick="sortTable(4)">PRP/LL Done <span class="sort-indicator"></span></th>
-                        <th onclick="sortTable(5)">Status <span class="sort-indicator"></span></th>
-                        <th>Factors</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+            <div id="assignments-tab" class="tab-content">
+                <div class="tf-assignment-section">
+                    <h3>Generate TF Assignments</h3>
+                    <p style="margin-bottom: 15px;">Generate worktodo entries for trial factoring unfactored exponents.</p>
 
-            <div class="tf-assignment-section">
-                <h3>Generate TF Assignments</h3>
-                <p style="margin-bottom: 15px;">Generate worktodo entries for trial factoring unfactored exponents.</p>
-
-                <div class="tf-controls">
-                    <label>
-                        Target TF Level: 2^
-                        <input type="number" id="tfTargetLevel" value="73" min="68" max="100">
-                    </label>
-                    <button class="btn-primary" onclick="generateTFAssignments()">Generate Assignments</button>
-                    <label>
-                        <input type="checkbox" id="includeFactored" onchange="generateTFAssignments()">
-                        Include factored exponents
-                    </label>
-                </div>
-
-                <div id="worktodoContainer" style="display: none;">
-                    <div style="position: relative;">
-                        <button class="btn-secondary copy-button" onclick="copyWorktodo()">Copy to Clipboard</button>
-                        <h4>Worktodo Entries:</h4>
+                    <div class="tf-controls">
+                        <label>
+                            Target TF Level: 2^
+                            <input type="number" id="tfTargetLevel" value="73" min="68" max="100">
+                        </label>
+                        <button class="btn-primary" onclick="generateTFAssignments()">Generate Assignments</button>
+                        <label>
+                            <input type="checkbox" id="includeFactored" onchange="generateTFAssignments()">
+                            Include factored exponents
+                        </label>
                     </div>
-                    <div class="worktodo-output" id="worktodoOutput"></div>
+
+                    <div id="worktodoContainer" style="display: none;">
+                        <div style="position: relative;">
+                            <button class="btn-secondary copy-button" onclick="copyWorktodo()">Copy to Clipboard</button>
+                            <h4>Worktodo Entries:</h4>
+                        </div>
+                        <div class="worktodo-output" id="worktodoOutput"></div>
+                    </div>
+                    
+                    <div id="tfErrorMessage"></div>
                 </div>
             </div>
         </div>
 
         <div id="errorMessage"></div>
+        
+        <!-- Factor Details Modal -->
+        <div id="factorModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle">Factor Details</h3>
+                    <button class="modal-close" onclick="closeModal()">&times;</button>
+                </div>
+                <ul id="factorList" class="factor-list"></ul>
+            </div>
+        </div>
     </div>
 
     <script>
         let parsedData = {};
+        let userStats = {};
         let currentSort = { column: 0, ascending: true };
+        let currentUserSort = { column: 7, ascending: false };
 
         function parseHTMLData(textData) {
             const results = {};
@@ -610,8 +825,10 @@
                                 }
                             }
 
-                            // Store the full history entry
+                            // Store the full history entry with user information
                             results[currentExponent].allData.push({
+                                date: date,
+                                user: user,
                                 type: type,
                                 result: result
                             });
@@ -725,6 +942,99 @@
             return results;
         }
 
+        function analyzeUserStats(data) {
+            const stats = {};
+            const totalExponents = Object.keys(data).length;
+
+            for (const [exponent, expData] of Object.entries(data)) {
+                for (const entry of expData.allData) {
+                    const user = entry.user;
+                    
+                    if (!stats[user]) {
+                        stats[user] = {
+                            user: user,
+                            tfExponents: new Set(),
+                            tfLevels: 0,
+                            tfFactors: 0,
+                            tfFactorDetails: [],
+                            p1Exponents: new Set(),
+                            p1Factors: 0,
+                            p1FactorDetails: [],
+                            prpTests: 0,
+                            totalActivity: 0
+                        };
+                    }
+
+                    // Track TF activity
+                    if (entry.type === 'NF' || entry.type === 'F') {
+                        stats[user].tfExponents.add(exponent);
+
+                        // Calculate TF levels done
+                        const tfHistMatch = entry.result.match(/no factor from 2\^(\d+)\s+to\s+2\^(\d+)/);
+                        if (tfHistMatch) {
+                            const tfFrom = parseInt(tfHistMatch[1]);
+                            const tfTo = parseInt(tfHistMatch[2]);
+                            stats[user].tfLevels += (tfTo - tfFrom);
+                        }
+
+                        // Check for TF ranges in factor results
+                        const tfColonMatch = entry.result.match(/(?:TF:\s*)?(\d+)-(\d+)/);
+                        if (tfColonMatch) {
+                            const tfFrom = parseInt(tfColonMatch[1]);
+                            const tfTo = parseInt(tfColonMatch[2]);
+                            stats[user].tfLevels += (tfTo - tfFrom);
+                        }
+
+                        // Count factors found via TF and extract factor details
+                        if (entry.type === 'F' && entry.result.includes('Factor:')) {
+                            stats[user].tfFactors++;
+                            
+                            // Extract factor from result
+                            const factorMatch = entry.result.match(/Factor:\s*(\d+)/);
+                            if (factorMatch) {
+                                stats[user].tfFactorDetails.push({
+                                    exponent: exponent,
+                                    factor: factorMatch[1]
+                                });
+                            }
+                        }
+                    }
+
+                    // Track P-1 activity
+                    if (entry.type === 'NF-PM1' || entry.type === 'F-PM1') {
+                        stats[user].p1Exponents.add(exponent);
+                        
+                        if (entry.type === 'F-PM1') {
+                            stats[user].p1Factors++;
+                            
+                            // Try to extract P-1 factor details
+                            const factorMatch = entry.result.match(/Factor:\s*(\d+)/);
+                            if (factorMatch) {
+                                stats[user].p1FactorDetails.push({
+                                    exponent: exponent,
+                                    factor: factorMatch[1]
+                                });
+                            }
+                        }
+                    }
+
+                    // Track PRP/LL tests
+                    if (entry.type === 'C-PRP' || entry.type === 'C-LL') {
+                        stats[user].prpTests++;
+                    }
+                }
+            }
+
+            // Convert sets to counts and calculate total activity
+            for (const user in stats) {
+                stats[user].tfExponents = stats[user].tfExponents.size;
+                stats[user].p1Exponents = stats[user].p1Exponents.size;
+                stats[user].totalActivity = stats[user].tfExponents + stats[user].p1Exponents + stats[user].prpTests;
+            }
+
+            return stats;
+        }
+
         function parseData() {
             const input = document.getElementById('dataInput').value;
 
@@ -740,6 +1050,7 @@
             try {
                 parsedData = parseHTMLData(input);
                 parsedData = checkIncompleteRanges(parsedData);
+                userStats = analyzeUserStats(parsedData);
 
                 if (Object.keys(parsedData).length === 0) {
                     showError('No valid data found. Please make sure you copied the HTML output from GIMPS with "Show full details" selected.');
@@ -772,12 +1083,14 @@
             }
 
             const total = Object.keys(parsedData).length;
+            const uniqueUsers = Object.keys(userStats).length;
 
             // Update stats
             document.getElementById('statTotal').textContent = total;
             document.getElementById('statFactored').textContent = factoredCount;
             document.getElementById('statP1').textContent = p1Count;
             document.getElementById('statPRP').textContent = prpLlCount;
+            document.getElementById('statUniqueUsers').textContent = uniqueUsers;
 
             // Update TF distribution
             const tfDistBody = document.querySelector('#tfDistribution tbody');
@@ -802,6 +1115,119 @@
 
             // Display table
             applyFilters();
+            displayUserStats();
+        }
+
+        function displayUserStats() {
+            const tbody = document.querySelector('#userStatsTable tbody');
+            tbody.innerHTML = '';
+
+            let userArray = Object.values(userStats);
+
+            // Apply current user sort
+            userArray.sort((a, b) => {
+                let aVal, bVal;
+
+                switch (currentUserSort.column) {
+                    case 0: // User
+                        aVal = a.user.toLowerCase();
+                        bVal = b.user.toLowerCase();
+                        break;
+                    case 1: // TF Exponents
+                        aVal = a.tfExponents;
+                        bVal = b.tfExponents;
+                        break;
+                    case 2: // TF Levels
+                        aVal = a.tfLevels;
+                        bVal = b.tfLevels;
+                        break;
+                    case 3: // TF Factors
+                        aVal = a.tfFactors;
+                        bVal = b.tfFactors;
+                        break;
+                    case 4: // P-1 Exponents
+                        aVal = a.p1Exponents;
+                        bVal = b.p1Exponents;
+                        break;
+                    case 5: // P-1 Factors
+                        aVal = a.p1Factors;
+                        bVal = b.p1Factors;
+                        break;
+                    case 6: // PRP Tests
+                        aVal = a.prpTests;
+                        bVal = b.prpTests;
+                        break;
+                    case 7: // Total Activity
+                        aVal = a.totalActivity;
+                        bVal = b.totalActivity;
+                        break;
+                }
+
+                if (typeof aVal === 'string') {
+                    return currentUserSort.ascending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                } else {
+                    if (aVal < bVal) return currentUserSort.ascending ? -1 : 1;
+                    if (aVal > bVal) return currentUserSort.ascending ? 1 : -1;
+                    return 0;
+                }
+            });
+
+            // Display user data
+            for (const user of userArray) {
+                const row = tbody.insertRow();
+
+                // User name
+                const userCell = row.insertCell(0);
+                userCell.textContent = user.user;
+                userCell.className = 'user-name';
+
+                // TF Exponents
+                const tfExpCell = row.insertCell(1);
+                tfExpCell.textContent = user.tfExponents;
+                tfExpCell.className = 'stat-number';
+
+                // TF Levels
+                const tfLevelsCell = row.insertCell(2);
+                tfLevelsCell.textContent = user.tfLevels;
+                tfLevelsCell.className = 'stat-number';
+
+                // TF Factors
+                const tfFactorsCell = row.insertCell(3);
+                if (user.tfFactors > 0) {
+                    tfFactorsCell.textContent = user.tfFactors;
+                    tfFactorsCell.className = 'stat-number clickable-factor';
+                    tfFactorsCell.onclick = () => showFactorDetails(user.user, 'TF', user.tfFactorDetails);
+                } else {
+                    tfFactorsCell.textContent = user.tfFactors;
+                    tfFactorsCell.className = 'stat-number';
+                }
+
+                // P-1 Exponents
+                const p1ExpCell = row.insertCell(4);
+                p1ExpCell.textContent = user.p1Exponents;
+                p1ExpCell.className = 'stat-number';
+
+                // P-1 Factors
+                const p1FactorsCell = row.insertCell(5);
+                if (user.p1Factors > 0) {
+                    p1FactorsCell.textContent = user.p1Factors;
+                    p1FactorsCell.className = 'stat-number clickable-factor';
+                    p1FactorsCell.onclick = () => showFactorDetails(user.user, 'P-1', user.p1FactorDetails);
+                } else {
+                    p1FactorsCell.textContent = user.p1Factors;
+                    p1FactorsCell.className = 'stat-number';
+                }
+
+                // PRP Tests
+                const prpCell = row.insertCell(6);
+                prpCell.textContent = user.prpTests;
+                prpCell.className = 'stat-number';
+
+                // Total Activity
+                const totalCell = row.insertCell(7);
+                totalCell.textContent = user.totalActivity;
+                totalCell.className = 'stat-number';
+            }
         }
 
         function applyFilters() {
@@ -931,12 +1357,100 @@
             applyFilters();
         }
 
+        function sortUserTable(column) {
+            // Update sort indicators
+            const headers = document.querySelectorAll('#userStatsTable th .sort-indicator');
+            headers.forEach((h, i) => {
+                if (i === column) {
+                    if (currentUserSort.column === column) {
+                        currentUserSort.ascending = !currentUserSort.ascending;
+                        h.textContent = currentUserSort.ascending ? '▼' : '▲';
+                    } else {
+                        currentUserSort.column = column;
+                        currentUserSort.ascending = false; // Default to descending for numeric columns
+                        h.textContent = '▲';
+                    }
+                } else {
+                    h.textContent = '';
+                }
+            });
+
+            displayUserStats();
+        }
+
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab and activate button
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function showFactorDetails(userName, factorType, factors) {
+            const modal = document.getElementById('factorModal');
+            const title = document.getElementById('modalTitle');
+            const factorList = document.getElementById('factorList');
+
+            title.textContent = `${factorType} Factors Found by ${userName}`;
+            factorList.innerHTML = '';
+
+            if (factors.length === 0) {
+                const li = document.createElement('li');
+                li.textContent = 'No factor details available';
+                factorList.appendChild(li);
+            } else {
+                factors.forEach(factor => {
+                    const li = document.createElement('li');
+                    
+                    const exponentDiv = document.createElement('div');
+                    const exponentLink = document.createElement('a');
+                    exponentLink.href = `https://www.mersenne.org/M${factor.exponent}`;
+                    exponentLink.textContent = `M${factor.exponent}`;
+                    exponentLink.target = '_blank';
+                    exponentLink.className = 'exponent-link factor-exponent';
+                    exponentDiv.appendChild(exponentLink);
+                    
+                    const factorDiv = document.createElement('div');
+                    factorDiv.textContent = factor.factor;
+                    factorDiv.className = 'factor-value';
+                    
+                    li.appendChild(exponentDiv);
+                    li.appendChild(factorDiv);
+                    factorList.appendChild(li);
+                });
+            }
+
+            modal.style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('factorModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('factorModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        }
+
         function clearData() {
             document.getElementById('dataInput').value = '';
             document.getElementById('results').style.display = 'none';
             document.getElementById('errorMessage').innerHTML = '';
+            document.getElementById('tfErrorMessage').innerHTML = '';
             document.getElementById('worktodoContainer').style.display = 'none';
             parsedData = {};
+            userStats = {};
         }
 
         function showError(message) {
@@ -1017,7 +1531,7 @@ no factor from 2^72 to 2^73
             const includeFactored = document.getElementById('includeFactored').checked;
 
             if (!targetLevel || targetLevel < 68 || targetLevel > 100) {
-                showError('Please enter a valid TF target level between 68 and 100.');
+                showTFError('Please enter a valid TF target level between 68 and 100.');
                 return;
             }
 
@@ -1042,7 +1556,7 @@ no factor from 2^72 to 2^73
 
             if (assignments.length === 0) {
                 document.getElementById('worktodoContainer').style.display = 'none';
-                showError('No exponents need TF to the specified level.');
+                showTFError('No exponents need TF to the specified level.');
                 return;
             }
 
@@ -1051,7 +1565,15 @@ no factor from 2^72 to 2^73
             document.getElementById('worktodoContainer').style.display = 'block';
 
             // Clear any error messages
-            document.getElementById('errorMessage').innerHTML = '';
+            document.getElementById('tfErrorMessage').innerHTML = '';
+        }
+
+        function showTFError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            document.getElementById('tfErrorMessage').innerHTML = '';
+            document.getElementById('tfErrorMessage').appendChild(errorDiv);
         }
 
         function copyWorktodo() {
